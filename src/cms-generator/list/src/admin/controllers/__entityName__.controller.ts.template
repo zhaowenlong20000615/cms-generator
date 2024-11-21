@@ -1,0 +1,100 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  Redirect,
+  Render,
+  Res,
+  UseFilters,
+  Headers,
+} from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger'
+import { AdminExectionFilter } from '../filters/admin-exection.filter'
+import { <%= classify(entityName) %>Service } from 'src/shared/services/<%= dasherize(entityName) %>.service'
+import { ParseOptionalInt } from 'src/shared/pipes/parse-optional-int.pipe'
+import { Like } from 'typeorm'
+import { Create<%= classify(entityName) %>Dto, Update<%= classify(entityName) %>Dto } from 'src/shared/dto/<%= dasherize(entityName) %>.dto'
+import { Result } from 'src/shared/vo/result'
+import { I18n, I18nContext } from 'nestjs-i18n'
+import { Response } from 'express'
+
+@Controller('admin/<%= dasherize(plural(entityName)) %>')
+@UseFilters(AdminExectionFilter)
+@ApiTags('admin/<%= dasherize(plural(entityName)) %>')
+export class <%= classify(entityName) %>Controller {
+  constructor(
+    private readonly <%= camelize(entityName) %>Service: <%= classify(entityName) %>Service,
+  ) {}
+
+  @Get()
+  @Render('<%= dasherize(entityName) %>/<%= dasherize(entityName) %>-list')
+  async index(
+    @Query('keyword') keyword: string = '',
+    @Query('page', new ParseOptionalInt(1)) page: number,
+    @Query('limit', new ParseOptionalInt(10)) limit: number,
+  ) {
+    const where = keyword ? [{ name: Like(`%${keyword}%`) }] : {}
+    const skip = (page - 1) * limit
+    const [<%= camelize(plural(entityName)) %>, total] = await this.<%= camelize(entityName) %>Service.findAllWithPagination({ where, skip, take: limit })
+    const pageCount = Math.ceil(total / limit)
+    return { <%= camelize(plural(entityName)) %>, keyword, page, limit, total, pageCount }
+  }
+
+  @Get('create')
+  @Render('<%= dasherize(entityName) %>/<%= dasherize(entityName) %>-form')
+  createForm() {
+    return {}
+  }
+
+  @Get(':id')
+  async findOne(@Param('id', ParseIntPipe) id: number, @Headers('accept') accept: string, @Res() res: Response) {
+    const <%= camelize(entityName) %> = await this.<%= camelize(entityName) %>Service.findOne({ where: { id }})
+    if (accept === 'application/json' && <%= camelize(entityName) %>) return res.send({ <%= camelize(entityName) %> })
+    if (<%= camelize(entityName) %>) return res.render('<%= dasherize(entityName) %>/<%= dasherize(entityName) %>-detail', { <%= camelize(entityName) %> })
+    throw new HttpException('该<%= camelize(entityName) %>不存在', HttpStatus.NOT_FOUND)
+  }
+
+  @Post()
+  @Redirect('/admin/<%= dasherize(plural(entityName)) %>')
+  async create(@Body() create<%= classify(entityName) %>Dto: Create<%= classify(entityName) %>Dto) {
+    await this.<%= camelize(entityName) %>Service.create(create<%= classify(entityName) %>Dto)
+    return Result.success('创建成功')
+  }
+
+  @Get('edit/:id')
+  @Render('<%= dasherize(entityName) %>/<%= dasherize(entityName) %>-form')
+  async editForm(@Param('id', ParseIntPipe) id: number) {
+    const <%= camelize(entityName) %> = await this.<%= camelize(entityName) %>Service.findOneBy({ id })
+    if (<%= camelize(entityName) %>) return { <%= camelize(entityName) %> }
+    throw new HttpException('该<%= camelize(entityName) %>不存在', HttpStatus.NOT_FOUND)
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() update<%= classify(entityName) %>Dto: Update<%= classify(entityName) %>Dto,
+    @Res({ passthrough: true }) res: Response,
+    @Headers('accept') accept: string,
+    @I18n() i18n: I18nContext,
+  ) {
+    const result = await this.<%= camelize(entityName) %>Service.update(id, update<%= classify(entityName) %>Dto)
+    if (accept === 'application/json' && result.affected === 1) return Result.success(i18n.t('response.editSuccess'))
+    if (result.affected === 1) res.redirect('/admin/<%= dasherize(plural(entityName)) %>')
+    throw new HttpException('该<%= camelize(entityName) %>不存在', HttpStatus.NOT_FOUND)
+  }
+
+  @Delete(':id')
+  async delete(@Param('id', ParseIntPipe) id: number, @I18n() i18n: I18nContext) {
+    const res = await this.<%= camelize(entityName) %>Service.delete(id)
+    if (res.affected === 1) return Result.success(i18n.t('response.deleteSuccess'))
+    throw new HttpException('该<%= camelize(entityName) %>不存在', HttpStatus.NOT_FOUND)
+  }
+}

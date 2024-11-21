@@ -1,0 +1,14 @@
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { <%= classify(entityName) %> } from "../entities/<%= dasherize(entityName) %>.entity";
+import { Repository } from 'typeorm';
+import { MysqlBaseService } from "./mysql-base.service";
+
+@Injectable()
+export class <%= classify(entityName) %>Service extends MysqlBaseService<<%= classify(entityName) %>> {
+  constructor(
+    @InjectRepository(<%= classify(entityName) %>) protected repository: Repository<<%= classify(entityName) %>>
+  ) {
+    super(repository);
+  }
+}
