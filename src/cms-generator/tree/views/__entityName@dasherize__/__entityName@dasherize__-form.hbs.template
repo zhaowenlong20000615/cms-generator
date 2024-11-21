@@ -18,24 +18,25 @@
                 <option value="0" {{#unless <%=camelize(entityName) %>.status}}selected{{/unless}}>未激活</option>
             </select>
         </div>
+        <div class="mb-3">
+            <label for="sort" class="form-label">排序</label>
+            <input type="number" class="form-control" id="sort" name="sort" value="{{<%= camelize(entityName) %>.sort}}">
+        </div>
         <button type="submit" class="btn btn-primary">保存</button>
 </form>
 <script>
     const <%= camelize(entityName) %>Tree = {{{ json <%= camelize(entityName) %>Tree }}};
-    const selectedParentId = {{{ def <%= camelize(entityName) %>.parent.id }}};
-    const <%= camelize(entityName) %>Id = {{{ def <%= camelize(entityName) %>.id }}};
+    const vo<%= classify(entityName) %> = {{{ json <%= camelize(entityName) %> }}}
     function renderTree(<%= camelize(plural(entityName)) %>) {
         let html = '<ul class="list-unstyled">';
         <%= camelize(plural(entityName)) %>.forEach(function (<%= camelize(entityName) %>) {
-            if (<%= camelize(entityName) %>.id == <%= camelize(entityName) %>Id) {
-                return;
-            }
+            if (vo<%= classify(entityName) %>.id === <%= camelize(entityName) %>.id) return
             html += `
             <li class="mb-2">
                 <div class="d-flex align-items-center">
                     ${<%= camelize(entityName) %>.children?.length > 0 ? '<span class="toggle me-2 cursor-pointer"><i class="bi bi-folder-plus"></i></span>' : '<span class="me-4"></span>'}
                     <label class="form-check-label">
-                        <input type="radio" class="form-check-input" name="parentId" value="${<%= camelize(entityName) %>.id}" ${<%= camelize(entityName) %>.id == selectedParentId ? 'checked' : ''}>
+                        <input type="radio" class="form-check-input" name="parentId" value="${<%= camelize(entityName) %>.id}" ${<%= camelize(entityName) %>.id == vo<%= classify(entityName) %>?.parent?.id ? 'checked' : ''}>
                         ${<%= camelize(entityName) %>.name}
                     </label>
                 </div>
@@ -45,17 +46,16 @@
         html += '</ul>';
         return html;
     }
-    $(function () {
-        $('#parentTree').html(renderTree(<%= camelize(entityName) %>Tree));
-        $('body').on('click', '.toggle', function () {
-            const childrenContainer = $(this).parent().siblings('.children');
-            if (childrenContainer.is(':visible')) {
-                childrenContainer.hide();
-                $(this).html('<i class="bi bi-folder-plus"></i>');
-            } else {
-                childrenContainer.show();
-                $(this).html('<i class="bi bi-folder-minus"></i>');
-            }
-        });
+    $('#parentTree').html(renderTree(<%= camelize(entityName) %>Tree));
+    $('body').on('click', '.toggle', function () {
+        const childrenContainer = $(this).parent().siblings('.children');
+        if (childrenContainer.is(':visible')) {
+            childrenContainer.hide();
+            $(this).html('<i class="bi bi-folder-plus"></i>');
+        } else {
+            childrenContainer.show();
+            $(this).html('<i class="bi bi-folder-minus"></i>');
+        }
     });
+   
 </script>

@@ -73,13 +73,15 @@
 <script>
 
     function delete<%= classify(entityName) %> (id) {
-        $.ajax({
-            url: `/admin/<%= dasherize(plural(entityName)) %>/${id}`,
-            type: 'delete',
-            success: (res) => {
-                if (res.success) window.location.reload()
-            }
-        })
+        if (confirm('确定要删除吗?')) {
+            $.ajax({
+                url: `/admin/<%= dasherize(plural(entityName)) %>/${id}`,
+                type: 'delete',
+                success: (res) => {
+                    if (res.success) window.location.reload()
+                }
+            })
+        }
     }
 
     

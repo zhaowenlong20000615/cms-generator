@@ -15,8 +15,9 @@ import {
   Res,
   UseFilters,
   Headers,
+  applyDecorators,
 } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import {ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AdminExectionFilter } from '../filters/admin-exection.filter'
 import { <%= classify(entityName) %>Service } from 'src/shared/services/<%= dasherize(entityName) %>.service'
 import { ParseOptionalInt } from 'src/shared/pipes/parse-optional-int.pipe'
@@ -25,6 +26,7 @@ import { Create<%= classify(entityName) %>Dto, Update<%= classify(entityName) %>
 import { Result } from 'src/shared/vo/result'
 import { I18n, I18nContext } from 'nestjs-i18n'
 import { Response } from 'express'
+import {  <%= classify(entityName) %> } from 'src/shared/entities/<%= dasherize(entityName) %>.entity'
 
 @Controller('admin/<%= dasherize(plural(entityName)) %>')
 @UseFilters(AdminExectionFilter)
@@ -36,7 +38,8 @@ export class <%= classify(entityName) %>Controller {
 
   @Get()
   @Render('<%= dasherize(entityName) %>/<%= dasherize(entityName) %>-list')
-  async index(
+  @ApiFindAll()
+  async findAll(
     @Query('keyword') keyword: string = '',
     @Query('page', new ParseOptionalInt(1)) page: number,
     @Query('limit', new ParseOptionalInt(10)) limit: number,
@@ -55,6 +58,7 @@ export class <%= classify(entityName) %>Controller {
   }
 
   @Get(':id')
+  @ApiFindOne()
   async findOne(@Param('id', ParseIntPipe) id: number, @Headers('accept') accept: string, @Res() res: Response) {
     const <%= camelize(entityName) %> = await this.<%= camelize(entityName) %>Service.findOne({ where: { id }})
     if (accept === 'application/json' && <%= camelize(entityName) %>) return res.send({ <%= camelize(entityName) %> })
@@ -64,6 +68,7 @@ export class <%= classify(entityName) %>Controller {
 
   @Post()
   @Redirect('/admin/<%= dasherize(plural(entityName)) %>')
+  @ApiCreate()
   async create(@Body() create<%= classify(entityName) %>Dto: Create<%= classify(entityName) %>Dto) {
     await this.<%= camelize(entityName) %>Service.create(create<%= classify(entityName) %>Dto)
     return Result.success('创建成功')
@@ -78,6 +83,7 @@ export class <%= classify(entityName) %>Controller {
   }
 
   @Put(':id')
+  @ApiUpdate()
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() update<%= classify(entityName) %>Dto: Update<%= classify(entityName) %>Dto,
@@ -92,9 +98,55 @@ export class <%= classify(entityName) %>Controller {
   }
 
   @Delete(':id')
+  @ApiDelete()
   async delete(@Param('id', ParseIntPipe) id: number, @I18n() i18n: I18nContext) {
     const res = await this.<%= camelize(entityName) %>Service.delete(id)
     if (res.affected === 1) return Result.success(i18n.t('response.deleteSuccess'))
     throw new HttpException('该<%= camelize(entityName) %>不存在', HttpStatus.NOT_FOUND)
   }
+}
+
+function ApiFindAll() {
+  return applyDecorators(
+    ApiOperation({ summary: '获取所有<%= camelize(entityName) %>列表' }),
+    ApiResponse({ status: HttpStatus.OK, description: '成功返回<%= camelize(entityName) %>列表', type: [<%= classify(entityName) %>] }),
+  )
+}
+
+function ApiFindOne() {
+  return applyDecorators(
+    ApiOperation({ summary: '根据ID获取某个<%= camelize(entityName) %>信息' }),
+    ApiParam({ name: 'id', description: '<%= camelize(entityName) %>ID', type: Number }),
+    ApiResponse({ status: HttpStatus.OK, description: '成功返回<%= camelize(entityName) %>信息', type: <%= classify(entityName) %> }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: '<%= camelize(entityName) %>未找到' }),
+  )
+}
+
+function ApiCreate() {
+  return applyDecorators(
+    ApiOperation({ summary: '创建新<%= camelize(entityName) %>' }),
+    ApiBody({ description: '<%= camelize(entityName) %>DTO', type: Create<%= classify(entityName) %>Dto }),
+    ApiResponse({ status: HttpStatus.CREATED, description: '<%= camelize(entityName) %>创建成功', type: <%= classify(entityName) %> }),
+    ApiResponse({ status: HttpStatus.BAD_REQUEST, description: '请求参数错误' }),
+  )
+}
+
+function ApiUpdate() {
+  return applyDecorators(
+    ApiOperation({ summary: '更新<%= camelize(entityName) %>信息' }),
+    ApiParam({ name: 'id', description: '<%= camelize(entityName) %>ID', type: Number }),
+    ApiBody({ description: '更新<%= camelize(entityName) %>DTO', type: Update<%= classify(entityName) %>Dto }),
+    ApiResponse({ status: HttpStatus.OK, description: '<%= camelize(entityName) %>信息更新成功', type: Result }),
+    ApiResponse({ status: HttpStatus.BAD_REQUEST, description: '请求参数错误' }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: '<%= camelize(entityName) %>未找到' }),
+  )
+}
+
+function ApiDelete() {
+  return applyDecorators(
+    ApiOperation({ summary: '根据ID删除<%= camelize(entityName) %>' }),
+    ApiParam({ name: 'id', description: '<%= camelize(entityName) %>ID', type: Number }),
+    ApiResponse({ status: HttpStatus.OK, description: '<%= camelize(entityName) %>删除成功', type: Result }),
+    ApiResponse({ status: HttpStatus.NOT_FOUND, description: '<%= camelize(entityName) %>未找到' }),
+  )
 }

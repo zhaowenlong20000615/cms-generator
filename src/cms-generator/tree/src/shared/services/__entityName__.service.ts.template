@@ -2,20 +2,19 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { <%= classify(entityName) %> } from "../entities/<%= dasherize(entityName) %>.entity";
 import { Repository, Like } from 'typeorm';
-import { MySQLBaseService } from "./mysql-base.service";
+import { MysqlBaseService } from "./mysql-base.service";
  import { Create<%= classify(entityName) %>Dto, Update<%= classify(entityName) %>Dto } from '../dto/<%= dasherize(entityName) %>.dto';
 import { TreeRepository, UpdateResult } from 'typeorm';
 @Injectable()
-export class <%= classify(entityName) %>Service extends MySQLBaseService<<%= classify(entityName) %>> {
+export class <%= classify(entityName) %>Service extends MysqlBaseService<<%= classify(entityName) %>> {
   constructor(
     @InjectRepository(<%= classify(entityName) %>) protected repository: TreeRepository<<%= classify(entityName) %>>
   ) {
     super(repository);
   }
-
-  async findAll() {
-    const <%= camelize(entityName) %>Tree = await this.repository.findTrees({ relations: ['children', 'parent'] });
-    return <%= camelize(entityName) %>Tree.filter(<%= camelize(entityName) %> => !<%= camelize(entityName) %>.parent);
+  
+  findAll(): Promise<<%= classify(entityName) %>[]> {
+    return this.repository.findTrees({ relations: ['parent', 'children'] })
   }
   
   async create(create<%= classify(entityName) %>Dto: Create<%= classify(entityName) %>Dto): Promise<<%= classify(entityName) %>> {
@@ -24,14 +23,12 @@ export class <%= classify(entityName) %>Service extends MySQLBaseService<<%= cla
     if (parentId) {
       <%= camelize(entityName) %>.parent = await this.repository.findOneBy({ id: parentId });
     }
-    await this.repository.save(<%= camelize(entityName) %>);
-    return this.findOne({ where: { id: <%= camelize(entityName) %>.id } });
+    return this.repository.save(<%= camelize(entityName) %>)
   }
 
-  async update(id: number, update<%= classify(entityName) %>Dto: Update<%= classify(entityName) %>Dto) {
+  async update(id: number, update<%= classify(entityName) %>Dto: Update<%= classify(entityName) %>Dto): Promise<UpdateResult> {
     const { parentId, ...dto } = update<%= classify(entityName) %>Dto;
     const <%= camelize(entityName) %> = await this.repository.findOneBy({ id });
-    if (!<%= camelize(entityName) %>) throw new Error('<%= classify(entityName) %> not found');
     Object.assign(<%= camelize(entityName) %>, dto);
     if (parentId) {
       <%= camelize(entityName) %>.parent = await this.repository.findOneBy({ id: parentId });
